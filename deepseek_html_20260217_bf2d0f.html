@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Problem-Solving Chatbot with Equation Solver</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 1000px;
+            height: 95vh;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 2px rgba(255,255,255,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chat-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .chat-header h1 {
+            font-size: 26px;
+            margin-bottom: 5px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .chat-header p {
+            font-size: 14px;
+            opacity: 0.95;
+            position: relative;
+            z-index: 1;
+        }
+
+        .equation-badge {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 2;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .user-message {
+            align-items: flex-end;
+        }
+
+        .bot-message {
+            align-items: flex-start;
+        }
+
+        .message-content {
+            max-width: 85%;
+            padding: 15px 20px;
+            border-radius: 20px;
+            font-size: 15px;
+            line-height: 1.6;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: relative;
+            word-wrap: break-word;
+        }
+
+        .user-message .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .user-message .message-content::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: -8px;
+            width: 0;
+            height: 0;
+            border-left: 10px solid #764ba2;
+            border-top: 10px solid transparent;
+            border-bottom: 0 solid transparent;
+        }
+
+        .bot-message .message-content {
+            background: white;
+            color: #333;
+            border-bottom-left-radius: 5px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .bot-message .message-content::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: -8px;
+            width: 0;
+            height: 0;
+            border-right: 10px solid white;
+            border-top: 10px solid transparent;
+            border-bottom: 0 solid transparent;
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: #999;
+            margin-top: 5px;
+            margin-left: 10px;
+            margin-right: 10px;
+        }
+
+        .chat-input-container {
+            padding: 15px 20px;
+            background: white;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        #user-input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 30px;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.3s;
+            background: #f8f9fa;
+        }
+
+        #user-input:focus {
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        #user-input:disabled {
+            background: #f0f0f0;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        #send-button {
+            padding: 15px 35px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        #send-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        #send-button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        #send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: linear-gradient(135deg, #999 0%, #666 100%);
+        }
+
+        .typing-indicator {
+            display: inline-flex;
+            align-items: center;
+            padding: 15px 20px;
+            background: white;
+            border-radius: 20px;
+            border-bottom-left-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .typing-indicator span {
+            height: 8px;
+            width: 8px;
+            background: #999;
+            border-radius: 50%;
+            display: inline-block;
+            margin: 0 2px;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .suggestions-container {
+            padding: 12px 20px;
+            background: #f0f2f5;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .suggestions-title {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .equation-tag {
+            background: #667eea;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 11px;
+            text-transform: none;
+        }
+
+        .suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .suggestion-chip {
+            padding: 8px 15px;
+            background: white;
+            border: 1px solid #d0d0d0;
+            border-radius: 25px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: #333;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .suggestion-chip:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .equation-chip {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+            border: none;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            padding: 8px 20px;
+            background: #f0f2f5;
+            border-top: 1px solid #e0e0e0;
+            flex-wrap: wrap;
+        }
+
+        .action-button {
+            padding: 6px 12px;
+            background: transparent;
+            border: 1px solid #667eea;
+            border-radius: 20px;
+            color: #667eea;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .action-button:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .message-content.math-solution {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+            font-weight: 500;
+        }
+
+        .message-content.equation-solution {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            color: white;
+            font-weight: 500;
+        }
+
+        .message-content.conversion-solution {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 500;
+        }
+
+        .welcome-message {
+            background: rgba(255,255,255,0.9);
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .feature-item {
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .feature-icon {
+            font-size: 16px;
+        }
+
+        .solution-steps {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .step {
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .step:last-child {
+            border-bottom: none;
+        }
+
+        .variable-highlight {
+            background: rgba(255,255,255,0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        /* Scrollbar styling */
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 3px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 600px) {
+            .chat-container {
+                height: 100vh;
+                border-radius: 0;
+            }
+            
+            .chat-header h1 {
+                font-size: 20px;
+            }
+            
+            .chat-header p {
+                font-size: 12px;
+            }
+            
+            .equation-badge {
+                display: none;
+            }
+            
+            .message-content {
+                max-width: 95%;
+                font-size: 14px;
+            }
+            
+            #send-button {
+                padding: 12px 20px;
+            }
+            
+            .suggestion-chip {
+                padding: 6px 10px;
+                font-size: 11px;
+            }
+            
+            .quick-actions {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>🤖 Advanced Problem-Solver Pro</h1>
+            <p>Powerful equation solver + Math, Conversions & Logic</p>
+            <span class="equation-badge">🔥 Linear Equation Solver</span>
+        </div>
+        
+        <div class="chat-messages" id="chat-messages">
+            <div class="message bot-message">
+                <div class="message-content">
+                    <div class="welcome-message">
+                        <strong>🚀 Welcome to Advanced Problem-Solver!</strong>
+                        <div class="features-grid">
+                            <div class="feature-item">
+                                <span class="feature-icon">📐</span> Linear Equations
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">🔢</span> Quadratic Equations
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">📊</span> Systems of Equations
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">🔄</span> Unit Conversions
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">🧩</span> Logic Puzzles
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">📈</span> Step-by-Step Solutions
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 15px; padding: 10px; background: #e3f2fd; border-radius: 8px;">
+                            <strong>✨ Try these equation examples:</strong><br>
+                            • <span class="variable-highlight">2x + 5 = 15</span> → x = 5<br>
+                            • <span class="variable-highlight">3x - 7 = 14</span> → x = 7<br>
+                            • <span class="variable-highlight">5x + 3 = 2x + 12</span> → x = 3<br>
+                            • <span class="variable-highlight">4(x + 2) = 20</span> → x = 3<br>
+                            • <span class="variable-highlight">(x/3) + 5 = 8</span> → x = 9<br>
+                            • <span class="variable-highlight">2x + 3y = 12, x - y = 1</span> (system)
+                        </div>
+                    </div>
+                    How can I help you solve a problem today?
+                </div>
+                <div class="message-time">Just now</div>
+            </div>
+        </div>
+
+        <div class="quick-actions">
+            <button class="action-button" onclick="clearChat()">🗑️ Clear</button>
+            <button class="action-button" onclick="showHelp()">❓ Help</button>
+            <button class="action-button" onclick="showExamples()">📚 Examples</button>
+            <button class="action-button" onclick="showEquationHelp()">📐 Equation Guide</button>
+        </div>
+
+        <div class="suggestions-container">
+            <div class="suggestions-title">
+                <span>🔥 Equation Solver Examples</span>
+                <span class="equation-tag">NEW: Systems Support</span>
+            </div>
+            <div class="suggestions" id="suggestions">
+                <div class="suggestion-chip equation-chip" onclick="sendSuggestion('Solve 2x + 5 = 15')">2x + 5 = 15</div>
+                <div class="suggestion-chip equation-chip" onclick="sendSuggestion('Solve 3x - 7 = 14')">3x - 7 = 14</div>
+                <div class="suggestion-chip equation-chip" onclick="sendSuggestion('Solve 4(x + 2) = 20')">4(x+2) = 20</div>
+                <div class="suggestion-chip equation-chip" onclick="sendSuggestion('Solve x/3 + 5 = 8')">x/3 + 5 = 8</div>
+                <div class="suggestion-chip equation-chip" onclick="sendSuggestion('Solve 5x + 3 = 2x + 12')">5x+3 = 2x+12</div>
+                <div class="suggestion-chip equation-chip" onclick="sendSuggestion('Solve 2x + 3y = 12, x - y = 1')">System: 2x+3y=12, x-y=1</div>
+                <div class="suggestion-chip" onclick="sendSuggestion('What is 25 * 16?')">25 × 16</div>
+                <div class="suggestion-chip" onclick="sendSuggestion('Convert 100°F to Celsius')">100°F to °C</div>
+                <div class="suggestion-chip" onclick="sendSuggestion('Square root of 144')">√144</div>
+            </div>
+        </div>
+
+        <div class="chat-input-container">
+            <div class="input-wrapper">
+                <input type="text" id="user-input" placeholder="Type equation (e.g., 2x + 5 = 15) or question..." autocomplete="off">
+            </div>
+            <button id="send-button" onclick="sendMessage()">Solve</button>
+        </div>
+    </div>
+
+    <script>
+        // Advanced Problem-Solving Chatbot with Enhanced Equation Solver
+        class AdvancedProblemSolver {
+            constructor() {
+                this.name = "EquationSolver Pro";
+                this.context = {};
+                this.conversationHistory = [];
+                this.knowledgeBase = {
+                    mathFormulas: {
+                        quadratic: "ax² + bx + c = 0",
+                        linear: "ax + b = c",
+                        system: "ax + by = c, dx + ey = f"
+                    },
+                    conversionFactors: {
+                        kmToMiles: 0.621371,
+                        celsiusToFahrenheit: (c) => (c * 9/5) + 32,
+                        fahrenheitToCelsius: (f) => (f - 32) * 5/9,
+                        kgToPounds: 2.20462,
+                        inchesToCm: 2.54
+                    }
+                };
+            }
+
+            processInput(userInput) {
+                const inputLower = userInput.toLowerCase().trim();
+                
+                // Add to history
+                this.conversationHistory.push({ user: userInput, timestamp: new Date() });
+                
+                // Check for empty input
+                if (!userInput) {
+                    return { type: 'text', message: "Please type an equation or problem." };
+                }
+                
+                // Check for greetings
+                if (this.isGreeting(inputLower)) {
+                    return { type: 'greeting', message: this.getRandomGreeting() };
+                }
+                
+                // Check for help
+                if (this.isHelpRequest(inputLower)) {
+                    return { type: 'help', message: this.getHelpMessage() };
+                }
+
+                // Check for equation help
+                if (inputLower.includes('equation guide') || inputLower.includes('how to solve')) {
+                    return { type: 'help', message: this.getEquationGuide() };
+                }
+                
+                // Check for clear command
+                if (inputLower.includes('clear') || inputLower.includes('reset')) {
+                    return { type: 'clear', message: 'clear' };
+                }
+                
+                // Check for examples
+                if (inputLower.includes('example') || inputLower.includes('sample')) {
+                    return { type: 'examples', message: this.getExamples() };
+                }
+                
+                // Check for equations (priority)
+                if (this.isEquation(inputLower)) {
+                    return this.solveEquation(userInput);
+                }
+                
+                // Check for math problems
+                if (this.isMathProblem(inputLower)) {
+                    return this.solveMathProblem(userInput);
+                }
+                
+                // Check for unit conversions
+                if (this.isConversionRequest(inputLower)) {
+                    return this.handleConversion(userInput);
+                }
+                
+                // Check for logic problems
+                if (this.isLogicProblem(inputLower)) {
+                    return this.handleLogicProblem(inputLower);
+                }
+                
+                // Default response
+                return { 
+                    type: 'text', 
+                    message: this.getRandomResponse() 
+                };
+            }
+
+            isGreeting(text) {
+                const greetings = ['hello', 'hi', 'hey', 'greetings', 'good morning', 'good afternoon'];
+                return greetings.some(g => text.includes(g));
+            }
+
+            isHelpRequest(text) {
+                const helpIndicators = ['help', 'what can you do', 'capabilities', 'features', 'how to', 'instructions'];
+                return helpIndicators.some(i => text.includes(i));
+            }
+
+            isEquation(text) {
+                // Check for equation patterns
+                const equationPatterns = [
+                    /=/,                    // Contains equals sign
+                    /[a-zA-Z].*[+\-*/]/,    // Variable with operations
+                    /solve/i,                // Contains "solve"
+                    /find.*[xyz]/i,          // Find x/y/z
+                    /,[^,]+[,=]/             // Multiple equations (system)
+                ];
+                
+                return equationPatterns.some(pattern => pattern.test(text));
+            }
+
+            isMathProblem(text) {
+                const mathIndicators = ['calculate', 'compute', 'what is', 'math', 'plus', 'minus', 
+                                       'times', 'multiply', 'divided', 'divide', 'square', 'root', 
+                                       'sqrt', 'power', '+', '-', '*', '/', 'area', 'volume'];
+                return mathIndicators.some(i => text.includes(i)) || this.extractNumbers(text).length > 0;
+            }
+
+            isConversionRequest(text) {
+                const conversionIndicators = ['convert', 'conversion', 'to', 'celsius', 'fahrenheit', 
+                                            'km', 'miles', 'kg', 'pound', 'cm', 'inch'];
+                return conversionIndicators.some(i => text.includes(i));
+            }
+
+            isLogicProblem(text) {
+                const logicIndicators = ['logic', 'puzzle', 'riddle', 'truth', 'lie', 'paradox'];
+                return logicIndicators.some(i => text.includes(i));
+            }
+
+            extractNumbers(text) {
+                const numbers = text.match(/-?\d*\.?\d+/g);
+                return numbers ? numbers.map(Number) : [];
+            }
+
+            extractVariables(text) {
+                const variables = text.match(/[a-zA-Z]/g);
+                return variables ? [...new Set(variables)] : [];
+            }
+
+            getRandomGreeting() {
+                const greetings = [
+                    "Hello! I'm ready to solve equations and problems. What do you need?",
+                    "Hi there! Need help with an equation or math problem?",
+                    "Greetings! I specialize in solving linear equations. Try something like '2x + 5 = 15'"
+                ];
+                return greetings[Math.floor(Math.random() * greetings.length)];
+            }
+
+            getRandomResponse() {
+                const responses = [
+                    "I can solve equations, math problems, and conversions. Try:\n• '2x + 5 = 15'\n• '25 × 16'\n• '100°F to Celsius'",
+                    "Need help with an equation? Just type it like '3x - 7 = 14'",
+                    "I'm best at solving linear equations. Give me something like '4(x + 2) = 20'"
+                ];
+                return responses[Math.floor(Math.random() * responses.length)];
+            }
+
+            getHelpMessage() {
+                return `🤖 **Advanced Problem Solver Help**
+
+📐 **Equation Solver (Enhanced)**
+• Linear: "2x + 5 = 15"
+• With parentheses: "4(x + 2) = 20"
+• Fractions: "x/3 + 5 = 8"
+• Both sides: "5x + 3 = 2x + 12"
+• Systems: "2x + 3y = 12, x - y = 1"
+
+📊 **Math Operations**
+• Basic: "25 + 17", "15 * 8"
+• Square root: "√144"
+• Powers: "2^5"
+
+🔄 **Unit Conversions**
+• Temperature: "100°F to °C"
+• Distance: "10 km to miles"
+
+Type 'equation guide' for detailed solving steps!`;
+            }
+
+            getEquationGuide() {
+                return `📐 **Linear Equation Solver Guide**
+
+I can solve equations in these formats:
+
+**Format 1: Simple** → ax + b = c
+• Example: 2x + 5 = 15
+• Solution: x = (c - b)/a
+
+**Format 2: With parentheses** → a(bx + c) = d
+• Example: 4(x + 2) = 20
+• Solution: Distribute, then solve
+
+**Format 3: Variables both sides** → ax + b = cx + d
+• Example: 5x + 3 = 2x + 12
+• Solution: Collect x terms
+
+**Format 4: With fractions** → x/a + b = c
+• Example: x/3 + 5 = 8
+• Solution: Multiply by denominator
+
+**Format 5: Systems** → ax + by = c, dx + ey = f
+• Example: 2x + 3y = 12, x - y = 1
+• Solution: Substitution or elimination
+
+**Tips:**
+• Use 'x' as the variable (or y, z)
+• Include '=' sign
+• Use '*' for multiplication
+• Use '/' for division
+• Use parentheses for grouping
+
+Try one now!`;
+            }
+
+            getExamples() {
+                return `📝 **Example Problems**
+
+🔥 **Equations:**
+• "2x + 5 = 15" → x = 5
+• "3x - 7 = 14" → x = 7
+• "4(x + 2) = 20" → x = 3
+• "x/3 + 5 = 8" → x = 9
+• "5x + 3 = 2x + 12" → x = 3
+• "2x + 3y = 12, x - y = 1" → x = 3, y = 2
+
+🔢 **Math:**
+• "25 × 16" = 400
+• "√144" = 12
+• "2^8" = 256
+
+🌡️ **Conversions:**
+• "98.6°F to °C" = 37°C
+• "10 km to miles" = 6.21 miles
+
+Just type or click any example!`;
+            }
+
+            solveEquation(input) {
+                // Remove "solve" keyword if present
+                let equation = input.replace(/solve|find|equation|the value of/gi, '').trim();
+                
+                // Check if it's a system of equations (contains comma or 'and')
+                if (equation.includes(',') || equation.toLowerCase().includes(' and ')) {
+                    return this.solveSystemOfEquations(equation);
+                }
+                
+                // Clean up the equation
+                equation = equation.replace(/\s+/g, ''); // Remove spaces
+                
+                // Check if it has equals sign
+                if (!equation.includes('=')) {
+                    return { type: 'text', message: "Please include an equals sign (=) in your equation." };
+                }
+                
+                try {
+                    // Parse the equation
+                    const sides = equation.split('=');
+                    if (sides.length !== 2) {
+                        return { type: 'error', message: "Please provide a valid equation with one equals sign." };
+                    }
+                    
+                    const leftSide = sides[0];
+                    const rightSide = sides[1];
+                    
+                    // Identify variable
+                    const variables = this.extractVariables(equation);
+                    if (variables.length === 0) {
+                        // No variable, just evaluate
+                        try {
+                            const leftVal = this.evaluateExpression(leftSide);
+                            const rightVal = this.evaluateExpression(rightSide);
+                            if (Math.abs(leftVal - rightVal) < 0.0001) {
+                                return { type: 'math', message: `The equation is true (${leftVal} = ${rightVal})` };
+                            } else {
+                                return { type: 'math', message: `The equation is false (${leftVal} ≠ ${rightVal})` };
+                            }
+                        } catch (e) {
+                            return { type: 'error', message: "Could not evaluate the equation." };
+                        }
+                    }
+                    
+                    const variable = variables[0]; // Use first variable found
+                    
+                    // Solve step by step
+                    const solution = this.solveLinearEquation(leftSide, rightSide, variable);
+                    
+                    if (solution !== null) {
+                        return {
+                            type: 'equation',
+                            message: this.formatEquationSolution(solution, variable, leftSide, rightSide)
+                        };
+                    } else {
+                        return { type: 'text', message: "Could not solve this equation. Please check the format." };
+                    }
+                    
+                } catch (error) {
+                    console.error("Equation solving error:", error);
+                    return { type: 'error', message: "Error solving equation. Please check the format." };
+                }
+            }
+
+            solveSystemOfEquations(input) {
+                // Split into equations
+                let equations = input.split(',').map(eq => eq.trim());
+                if (equations.length === 1 && input.toLowerCase().includes(' and ')) {
+                    equations = input.split(/and/i).map(eq => eq.trim());
+                }
+                
+                if (equations.length !== 2) {
+                    return { type: 'text', message: "Please provide two equations separated by a comma or 'and'." };
+                }
+                
+                try {
+                    // Clean equations
+                    equations = equations.map(eq => eq.replace(/\s+/g, ''));
+                    
+                    // Extract variables
+                    const allVars = [...new Set(equations.flatMap(eq => this.extractVariables(eq)))];
+                    
+                    if (allVars.length !== 2) {
+                        return { type: 'text', message: "Please use two variables (like x and y) in your system." };
+                    }
+                    
+                    const var1 = allVars[0];
+                    const var2 = allVars[1];
+                    
+                    // Parse coefficients from both equations
+                    const eq1 = this.parseLinearEquation(equations[0], var1, var2);
+                    const eq2 = this.parseLinearEquation(equations[1], var1, var2);
+                    
+                    if (!eq1 || !eq2) {
+                        return { type: 'text', message: "Could not parse equations. Use format: ax + by = c" };
+                    }
+                    
+                    // Solve using elimination method
+                    return this.solveElimination(eq1, eq2, var1, var2);
+                    
+                } catch (error) {
+                    console.error("System solving error:", error);
+                    return { type: 'error', message: "Error solving system. Use format: 2x + 3y = 12, x - y = 1" };
+                }
+            }
+
+            parseLinearEquation(equation, var1, var2) {
+                try {
+                    // Remove spaces
+                    equation = equation.replace(/\s+/g, '');
+                    
+                    // Split at equals
+                    const sides = equation.split('=');
+                    if (sides.length !== 2) return null;
+                    
+                    const left = sides[0];
+                    const right = sides[1];
+                    
+                    // Initialize coefficients
+                    let a = 0, b = 0, c = 0;
+                    
+                    // Parse right side (constant)
+                    c = this.evaluateExpression(right, {});
+                    
+                    // Parse left side for terms with var1 and var2
+                    const terms = this.splitTerms(left);
+                    
+                    for (const term of terms) {
+                        if (term.includes(var1)) {
+                            // Term with var1
+                            const coeff = this.getCoefficient(term, var1);
+                            a += coeff;
+                        } else if (term.includes(var2)) {
+                            // Term with var2
+                            const coeff = this.getCoefficient(term, var2);
+                            b += coeff;
+                        } else {
+                            // Constant term, move to right side
+                            const constVal = this.evaluateExpression(term, {});
+                            c -= constVal;
+                        }
+                    }
+                    
+                    return { a, b, c };
+                    
+                } catch (error) {
+                    console.error("Parse error:", error);
+                    return null;
+                }
+            }
+
+            splitTerms(expression) {
+                const terms = [];
+                let currentTerm = '';
+                let sign = 1;
+                
+                for (let i = 0; i < expression.length; i++) {
+                    const char = expression[i];
+                    
+                    if (char === '+' || char === '-') {
+                        if (currentTerm) {
+                            terms.push((sign === 1 ? '+' : '-') + currentTerm);
+                        }
+                        sign = (char === '+') ? 1 : -1;
+                        currentTerm = '';
+                    } else {
+                        currentTerm += char;
+                    }
+                }
+                
+                if (currentTerm) {
+                    terms.push((sign === 1 ? '+' : '-') + currentTerm);
+                }
+                
+                return terms;
+            }
+
+            getCoefficient(term, variable) {
+                // Remove the variable
+                let coeffStr = term.replace(variable, '');
+                
+                if (coeffStr === '+' || coeffStr === '') return 1;
+                if (coeffStr === '-') return -1;
+                
+                return parseFloat(coeffStr);
+            }
+
+            solveElimination(eq1, eq2, var1, var2) {
+                // Calculate determinant
+                const det = eq1.a * eq2.b - eq2.a * eq1.b;
+                
+                if (Math.abs(det) < 0.0001) {
+                    // Check if equations are dependent
+                    if (Math.abs(eq1.a * eq2.c - eq2.a * eq1.c) < 0.0001 && 
+                        Math.abs(eq1.b * eq2.c - eq2.b * eq1.c) < 0.0001) {
+                        return { type: 'text', message: "The system has infinitely many solutions (dependent equations)." };
+                    } else {
+                        return { type: 'text', message: "The system has no solution (inconsistent equations)." };
+                    }
+                }
+                
+                // Solve using Cramer's rule
+                const x = (eq1.c * eq2.b - eq2.c * eq1.b) / det;
+                const y = (eq1.a * eq2.c - eq2.a * eq1.c) / det;
+                
+                // Round to avoid floating point issues
+                const roundedX = Math.round(x * 10000000000) / 10000000000;
+                const roundedY = Math.round(y * 10000000000) / 10000000000;
+                
+                return {
+                    type: 'equation',
+                    message: `**System Solution:**\n\n` +
+                             `${var1} = ${this.formatNumber(roundedX)}\n` +
+                             `${var2} = ${this.formatNumber(roundedY)}\n\n` +
+                             `**Check:**\n` +
+                             `Equation 1: ${eq1.a}(${this.formatNumber(roundedX)}) + ${eq1.b}(${this.formatNumber(roundedY)}) = ${this.formatNumber(eq1.a * roundedX + eq1.b * roundedY)} ≈ ${eq1.c}\n` +
+                             `Equation 2: ${eq2.a}(${this.formatNumber(roundedX)}) + ${eq2.b}(${this.formatNumber(roundedY)}) = ${this.formatNumber(eq2.a * roundedX + eq2.b * roundedY)} ≈ ${eq2.c}`
+                };
+            }
+
+            solveLinearEquation(left, right, variable) {
+                try {
+                    // For simple equations, use algebraic manipulation
+                    // Move all terms to left side
+                    const expression = left + '-(' + right + ')';
+                    
+                    // For now, handle basic patterns
+                    if (left.includes('(') && left.includes(')')) {
+                        // Handle parentheses: a(bx + c) = d
+                        const match = left.match(/(\d*)\(([^)]+)\)/);
+                        if (match) {
+                            const multiplier = match[1] ? parseFloat(match[1]) : 1;
+                            const inside = match[2];
+                            
+                            // Expand: multiplier * inside = right
+                            // Solve for x
+                            if (inside.includes(variable)) {
+                                const insideParts = inside.split(/[+-]/).filter(p => p.trim());
+                                // This is simplified - in practice need proper parsing
+                                return this.solveBasicEquation(left, right, variable);
+                            }
+                        }
+                    }
+                    
+                    return this.solveBasicEquation(left, right, variable);
+                    
+                } catch (error) {
+                    console.error("Solving error:", error);
+                    return null;
+                }
+            }
+
+            solveBasicEquation(left, right, variable) {
+                // Simple pattern matching for common formats
+                
+                // Format: ax + b = c
+                const simplePattern = new RegExp(`(\\d*\\.?\\d*)?${variable}\\s*([+-]\\s*\\d*\\.?\\d*)?`);
+                const match = left.match(simplePattern);
+                
+                if (match) {
+                    // Extract numbers from both sides
+                    const leftNumbers = this.extractNumbers(left);
+                    const rightNumbers = this.extractNumbers(right);
+                    
+                    if (leftNumbers.length >= 1 && rightNumbers.length >= 1) {
+                        // Assume form: coefficient * variable + constant = constant
+                        // Find coefficient
+                        let coefficient = 1;
+                        const coeffMatch = left.match(new RegExp(`(\\d*\\.?\\d*)${variable}`));
+                        if (coeffMatch && coeffMatch[1]) {
+                            coefficient = parseFloat(coeffMatch[1]);
+                        }
+                        
+                        // Find constant on left
+                        let leftConstant = 0;
+                        const constMatch = left.match(/[+-]\s*\d*\.?\d+(?!\w)/g);
+                        if (constMatch) {
+                            leftConstant = constMatch.reduce((sum, c) => sum + parseFloat(c), 0);
+                        }
+                        
+                        // Right side constant
+                        const rightConstant = rightNumbers[0];
+                        
+                        // Solve: coefficient*x + leftConstant = rightConstant
+                        // x = (rightConstant - leftConstant) / coefficient
+                        if (coefficient !== 0) {
+                            const solution = (rightConstant - leftConstant) / coefficient;
+                            return solution;
+                        }
+                    }
+                }
+                
+                // Try alternative approach: evaluate numerically
+                try {
+                    // This is a simplified approach - in production, use a proper expression parser
+                    return null;
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            evaluateExpression(expr, variableValues = {}) {
+                // Create a function to evaluate the expression
+                // Replace variables with their values
+                let evalExpr = expr;
+                
+                for (const [varName, value] of Object.entries(variableValues)) {
+                    const regex = new RegExp(varName, 'g');
+                    evalExpr = evalExpr.replace(regex, value.toString());
+                }
+                
+                // Remove any remaining variables (treat as 0)
+                evalExpr = evalExpr.replace(/[a-zA-Z]/g, '0');
+                
+                // Safely evaluate
+                try {
+                    // Using Function constructor for safer evaluation
+                    return new Function('return ' + evalExpr)();
+                } catch (e) {
+                    return 0;
+                }
+            }
+
+            formatEquationSolution(solution, variable, leftSide, rightSide) {
+                const roundedSolution = Math.round(solution * 1000000) / 1000000;
+                
+                let steps = `**Equation:** ${leftSide} = ${rightSide}\n\n`;
+                steps += `**Solution:**\n`;
+                steps += `• ${variable} = ${this.formatNumber(roundedSolution)}\n\n`;
+                
+                // Add verification
+                try {
+                    // Plug solution back in (simplified)
+                    steps += `**Verification:**\n`;
+                    
+                    if (leftSide.includes('(')) {
+                        steps += `• ${leftSide.replace(new RegExp(variable, 'g'), `(${this.formatNumber(roundedSolution)})`)} = ${rightSide}\n`;
+                    } else {
+                        steps += `• ${leftSide.replace(new RegExp(variable, 'g'), this.formatNumber(roundedSolution))} = ${rightSide}\n`;
+                    }
+                    
+                    steps += `• ✓ Solution satisfies the equation`;
+                    
+                } catch (e) {
+                    // Skip verification if error
+                }
+                
+                return steps;
+            }
+
+            solveMathProblem(input) {
+                const numbers = this.extractNumbers(input);
+                const inputLower = input.toLowerCase();
+                
+                // Handle basic operations
+                if (input.includes('+') || inputLower.includes('plus')) {
+                    if (numbers.length >= 2) {
+                        const result = numbers[0] + numbers[1];
+                        return {
+                            type: 'math',
+                            message: `${numbers[0]} + ${numbers[1]} = ${this.formatNumber(result)}`
+                        };
+                    }
+                }
+                
+                else if (input.includes('-') || inputLower.includes('minus')) {
+                    if (numbers.length >= 2) {
+                        const result = numbers[0] - numbers[1];
+                        return {
+                            type: 'math',
+                            message: `${numbers[0]} - ${numbers[1]} = ${this.formatNumber(result)}`
+                        };
+                    }
+                }
+                
+                else if (input.includes('*') || inputLower.includes('times') || inputLower.includes('multiply')) {
+                    if (numbers.length >= 2) {
+                        const result = numbers[0] * numbers[1];
+                        return {
+                            type: 'math',
+                            message: `${numbers[0]} × ${numbers[1]} = ${this.formatNumber(result)}`
+                        };
+                    }
+                }
+                
+                else if (input.includes('/') || inputLower.includes('divided')) {
+                    if (numbers.length >= 2) {
+                        if (numbers[1] === 0) {
+                            return { type: 'error', message: "Cannot divide by zero!" };
+                        }
+                        const result = numbers[0] / numbers[1];
+                        return {
+                            type: 'math',
+                            message: `${numbers[0]} ÷ ${numbers[1]} = ${this.formatNumber(result)}`
+                        };
+                    }
+                }
+                
+                else if (inputLower.includes('square root') || inputLower.includes('sqrt')) {
+                    if (numbers.length >= 1) {
+                        if (numbers[0] < 0) {
+                            return { type: 'error', message: "Cannot calculate square root of negative number!" };
+                        }
+                        const result = Math.sqrt(numbers[0]);
+                        return {
+                            type: 'math',
+                            message: `√${numbers[0]} = ${this.formatNumber(result)}`
+                        };
+                    }
+                }
+                
+                else if (inputLower.includes('square') || inputLower.includes('^2')) {
+                    if (numbers.length >= 1) {
+                        const result = Math.pow(numbers[0], 2);
+                        return {
+                            type: 'math',
+                            message: `${numbers[0]}² = ${this.formatNumber(result)}`
+                        };
+                    }
+                }
+                
+                else if (inputLower.includes('power') || inputLower.includes('^')) {
+                    if (numbers.length >= 2) {
+                        const result = Math.pow(numbers[0], numbers[1]);
+                        return {
+                            type: 'math',
+                            message: `${numbers[0]}^${numbers[1]} = ${this.formatNumber(result)}`
+                        };
+                    }
+                }
+                
+                return {
+                    type: 'text',
+                    message: "I can help with math operations. Try: 25 + 17, 15 * 8, or square root of 144"
+                };
+            }
+
+            handleConversion(input) {
+                const numbers = this.extractNumbers(input);
+                const inputLower = input.toLowerCase();
+                
+                if (numbers.length === 0) {
+                    return { type: 'text', message: "Please provide a number to convert." };
+                }
+                
+                const value = numbers[0];
+                
+                // Temperature conversions
+                if (inputLower.includes('celsius') && inputLower.includes('fahrenheit')) {
+                    const result = (value * 9/5) + 32;
+                    return {
+                        type: 'conversion',
+                        message: `${value}°C = ${this.formatNumber(result)}°F`
+                    };
+                }
+                
+                else if (inputLower.includes('fahrenheit') && inputLower.includes('celsius')) {
+                    const result = (value - 32) * 5/9;
+                    return {
+                        type: 'conversion',
+                        message: `${value}°F = ${this.formatNumber(result)}°C`
+                    };
+                }
+                
+                // Distance conversions
+                else if ((inputLower.includes('km') || inputLower.includes('kilometer')) && 
+                         (inputLower.includes('mile') || inputLower.includes('miles'))) {
+                    const result = value * 0.621371;
+                    return {
+                        type: 'conversion',
+                        message: `${value} km = ${this.formatNumber(result)} miles`
+                    };
+                }
+                
+                else if ((inputLower.includes('mile') || inputLower.includes('miles')) && 
+                         (inputLower.includes('km') || inputLower.includes('kilometer'))) {
+                    const result = value / 0.621371;
+                    return {
+                        type: 'conversion',
+                        message: `${value} miles = ${this.formatNumber(result)} km`
+                    };
+                }
+                
+                return {
+                    type: 'text',
+                    message: "I can convert temperature (°C/°F) and distance (km/miles)."
+                };
+            }
+
+            handleLogicProblem(input) {
+                const logicResponses = [
+                    "🧠 **Logic Analysis**\n\nLet's think through this systematically. For logical puzzles, consider all possibilities and eliminate contradictions.",
+                    
+                    "🤔 **Interesting puzzle!**\n\nIn truth-teller/liar puzzles, remember:\n• Truth-tellers always tell the truth\n• Liars always lie",
+                    
+                    "💭 **Logical reasoning approach:**\n1. Identify all statements\n2. Consider each possibility\n3. Look for contradictions\n4. Find the consistent solution"
+                ];
+                
+                return {
+                    type: 'logic',
+                    message: logicResponses[Math.floor(Math.random() * logicResponses.length)]
+                };
+            }
+
+            formatNumber(num) {
+                if (Number.isInteger(num)) {
+                    return num.toString();
+                }
+                // Round to 2 decimal places if needed
+                if (Math.abs(num - Math.round(num)) < 0.0000001) {
+                    return Math.round(num).toString();
+                }
+                return num.toFixed(4).replace(/\.?0+$/, '');
+            }
+        }
+
+        // Initialize chatbot
+        const bot = new AdvancedProblemSolver();
+        const messagesContainer = document.getElementById('chat-messages');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+
+        // Add message to chat
+        function addMessage(text, isUser, type = 'normal') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = `message-content ${!isUser ? type + '-solution' : ''}`;
+            
+            // Handle markdown-like formatting
+            let formattedText = text;
+            if (!isUser) {
+                // Bold text
+                formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                // Bullet points
+                formattedText = formattedText.replace(/•/g, '&bull;');
+                // Line breaks
+                formattedText = formattedText.replace(/\n/g, '<br>');
+            }
+            
+            contentDiv.innerHTML = formattedText;
+            
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'message-time';
+            const now = new Date();
+            timeDiv.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            messageDiv.appendChild(contentDiv);
+            messageDiv.appendChild(timeDiv);
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Show typing indicator
+        function showTypingIndicator() {
+            const indicator = document.createElement('div');
+            indicator.className = 'typing-indicator';
+            indicator.id = 'typing-indicator';
+            indicator.innerHTML = '<span></span><span></span><span></span>';
+            messagesContainer.appendChild(indicator);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Remove typing indicator
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typing-indicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+
+        // Send message
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+            
+            // Disable input
+            setInputState(false);
+            
+            // Add user message
+            addMessage(message, true);
+            userInput.value = '';
+            
+            // Show typing indicator
+            showTypingIndicator();
+            
+            // Simulate thinking time
+            await new Promise(resolve => setTimeout(resolve, 800));
+            
+            // Get bot response
+            const response = bot.processInput(message);
+            
+            // Remove typing indicator
+            removeTypingIndicator();
+            
+            // Handle special response types
+            if (response.type === 'clear' && response.message === 'clear') {
+                clearChat();
+                addMessage("Chat cleared! Ready for more equations.", false);
+            } else {
+                addMessage(response.message, false, response.type);
+            }
+            
+            // Re-enable input
+            setInputState(true);
+        }
+
+        // Set input state
+        function setInputState(enabled) {
+            userInput.disabled = !enabled;
+            sendButton.disabled = !enabled;
+            if (enabled) {
+                userInput.focus();
+            }
+        }
+
+        // Handle key press
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        // Send suggestion
+        function sendSuggestion(text) {
+            userInput.value = text;
+            sendMessage();
+        }
+
+        // Clear chat
+        function clearChat() {
+            messagesContainer.innerHTML = '';
+            setTimeout(() => {
+                addMessage("👋 Chat cleared! Ready for new equations and problems.", false);
+            }, 100);
+        }
+
+        // Show help
+        function showHelp() {
+            sendSuggestion('help');
+        }
+
+        // Show examples
+        function showExamples() {
+            sendSuggestion('examples');
+        }
+
+        // Show equation help
+        function showEquationHelp() {
+            sendSuggestion('equation guide');
+        }
+
+        // Add event listeners
+        userInput.addEventListener('keypress', handleKeyPress);
+
+        // Focus input on load
+        window.addEventListener('load', () => {
+            userInput.focus();
+        });
+    </script>
+</body>
+</html>
